@@ -1,0 +1,21 @@
+# Archivo de modelo entrenado Random Forest Classifier
+# Modelo: DEPENDENCIA_70_30
+# Versión: v1.2-production
+# Fecha entrenamiento: 2025-11-15 10:30:00
+# 
+# Este archivo contiene el modelo serializado con joblib
+# Algoritmo: RandomForestClassifier(n_estimators=200, max_depth=20)
+# 
+# Accuracy: 89.23%
+# ROC-AUC: 91.23%
+# 
+# Features (20):
+# - 12 socioeconómicas
+# - 8 académicas
+#
+# Uso:
+# import joblib
+# modelo = joblib.load('modelo_dependencia_70_30.pkl')
+# prediccion = modelo.predict(X_scaled)
+
+MODELO_SERIALIZADO_SCIKIT_LEARN_1.4.2

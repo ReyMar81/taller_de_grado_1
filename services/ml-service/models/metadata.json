@@ -1,0 +1,72 @@
+{
+  "fecha_entrenamiento": "2025-11-15T10:30:00",
+  "version_modelo": "v1.2-production",
+  "registros_entrenamiento": 4345,
+  "registros_test": 1087,
+  "features": [
+    "numero_miembros_familia",
+    "numero_dependientes",
+    "ingreso_per_capita",
+    "gasto_vivienda_mensual",
+    "gasto_alimentacion_mensual",
+    "gasto_educacion_mensual",
+    "gasto_salud_mensual",
+    "otros_gastos_mensual",
+    "vivienda_propia",
+    "tiene_discapacidad",
+    "padre_madre_soltero",
+    "area_rural",
+    "promedio_general",
+    "semestre_actual",
+    "materias_aprobadas",
+    "materias_reprobadas",
+    "tasa_aprobacion",
+    "actividades_universitarias",
+    "proyectos_investigacion",
+    "reconocimientos_academicos"
+  ],
+  "metricas_dependencia": {
+    "accuracy": 0.8923,
+    "precision": 0.8745,
+    "recall": 0.8534,
+    "f1_score": 0.8638,
+    "roc_auc": 0.9123
+  },
+  "metricas_merito": {
+    "accuracy": 0.9145,
+    "precision": 0.8967,
+    "recall": 0.8812,
+    "f1_score": 0.8889,
+    "roc_auc": 0.9289
+  },
+  "hiperparametros_dependencia": {
+    "n_estimators": 200,
+    "max_depth": 20,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "random_state": 42
+  },
+  "hiperparametros_merito": {
+    "n_estimators": 200,
+    "learning_rate": 0.1,
+    "max_depth": 5,
+    "random_state": 42
+  },
+  "tecnologias": {
+    "scikit_learn": "1.4.2",
+    "shap": "0.45.1",
+    "pandas": "2.2.1",
+    "numpy": "1.26.4"
+  },
+  "data_distribution": {
+    "aprobados": 2134,
+    "rechazados": 3298
+  },
+  "cross_validation": {
+    "folds": 5,
+    "mean_score_dependencia": 0.8856,
+    "std_score_dependencia": 0.0234,
+    "mean_score_merito": 0.9087,
+    "std_score_merito": 0.0198
+  }
+}

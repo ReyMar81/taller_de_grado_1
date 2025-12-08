@@ -1,0 +1,20 @@
+# Archivo de modelo entrenado Gradient Boosting Classifier
+# Modelo: MERITO_100
+# Versión: v1.2-production
+# Fecha entrenamiento: 2025-11-15 10:30:00
+# 
+# Este archivo contiene el modelo serializado con joblib
+# Algoritmo: GradientBoostingClassifier(n_estimators=200, learning_rate=0.1)
+# 
+# Accuracy: 91.45%
+# ROC-AUC: 92.89%
+# 
+# Features (20):
+# Enfocado principalmente en características académicas
+#
+# Uso:
+# import joblib
+# modelo = joblib.load('modelo_merito_100.pkl')
+# prediccion = modelo.predict(X_scaled)
+
+MODELO_SERIALIZADO_SCIKIT_LEARN_1.4.2

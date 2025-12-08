@@ -1,0 +1,5 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+pydantic==2.6.4
+python-multipart==0.0.9
+# fabric-sdk-py==0.9.0  # SDK de Hyperledger Fabric (descomentar en producción)

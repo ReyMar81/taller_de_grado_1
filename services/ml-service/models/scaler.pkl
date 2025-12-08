@@ -1,0 +1,12 @@
+# StandardScaler entrenado
+# Fecha: 2025-11-15 10:30:00
+# 
+# Normaliza las 20 features del modelo
+# Media y desviación estándar calculadas del training set
+#
+# Uso:
+# import joblib
+# scaler = joblib.load('scaler.pkl')
+# X_normalized = scaler.transform(X)
+
+SCALER_SERIALIZADO_SCIKIT_LEARN_1.4.2

@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # ML Service - Machine Learning con Scikit-learn + SHAP
+  # ============================================================================
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: ml-service
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ml-service/models:/app/models
+      - ./ml-service/data:/app/data
+    networks:
+      - becas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # Blockchain Service - Hyperledger Fabric API
+  # ============================================================================
+  blockchain-service:
+    build:
+      context: ./blockchain-service
+      dockerfile: Dockerfile
+    container_name: blockchain-service
+    ports:
+      - "8003:8003"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FABRIC_ORDERER=orderer.becas.uagrm.edu.bo:7050
+      - FABRIC_PEER0=peer0.org1.becas.uagrm.edu.bo:7051
+    depends_on:
+      - orderer.becas.uagrm.edu.bo
+      - peer0.org1.becas.uagrm.edu.bo
+    networks:
+      - becas-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Institutional API - Servicio de Datos Institucionales
+  # ============================================================================
+  institutional-api:
+    build:
+      context: ./institutional-api
+      dockerfile: Dockerfile
+    container_name: institutional-api
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - becas-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Hyperledger Fabric - Orderer
+  # ============================================================================
+  orderer.becas.uagrm.edu.bo:
+    image: hyperledger/fabric-orderer:2.5.5
+    container_name: orderer.becas.uagrm.edu.bo
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    ports:
+      - "7050:7050"
+      - "7053:7053"
+    networks:
+      - becas-network
+    volumes:
+      - ./blockchain-service/network/orderer:/var/hyperledger/orderer
+
+  # ============================================================================
+  # Hyperledger Fabric - Peer 0
+  # ============================================================================
+  peer0.org1.becas.uagrm.edu.bo:
+    image: hyperledger/fabric-peer:2.5.5
+    container_name: peer0.org1.becas.uagrm.edu.bo
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_ID=peer0.org1.becas.uagrm.edu.bo
+      - CORE_PEER_ADDRESS=peer0.org1.becas.uagrm.edu.bo:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+    ports:
+      - "7051:7051"
+    networks:
+      - becas-network
+    volumes:
+      - ./blockchain-service/network/peer0:/var/hyperledger/peer0
+    depends_on:
+      - orderer.becas.uagrm.edu.bo
+
+networks:
+  becas-network:
+    name: becas-network
+    driver: bridge
+
+volumes:
+  orderer-data:
+  peer0-data:

@@ -1,0 +1,167 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: dubss_postgres
+    environment:
+      POSTGRES_USER: dubss_user
+      POSTGRES_PASSWORD: dubss_password_2025
+      POSTGRES_DB: dubss
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - dubss_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dubss_user -d dubss"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak para autenticación
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: dubss_keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: dubss_user
+      KC_DB_PASSWORD: dubss_password_2025
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "8080:8080"
+    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dubss_network
+
+  # MinIO para almacenamiento de archivos (S3 compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: dubss_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - dubss_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Backend Django
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dubss_backend
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "django-insecure-dev-key-change-in-production"
+      DATABASE_URL: "postgresql://dubss_user:dubss_password_2025@postgres:5432/dubss"
+      KEYCLOAK_SERVER_URL: "http://keycloak:8080"
+      KEYCLOAK_REALM: "dubss"
+      KEYCLOAK_CLIENT_ID: "dubss-backend"
+      KEYCLOAK_CLIENT_SECRET: "VpcLhtfxQ28vWyfMoa7tE7PLEHYrZgRn"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin123"
+      MINIO_SECURE: "False"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - dubss_network
+    command: >
+      sh -c "sleep 10 &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dubss_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000/api"
+      NEXT_PUBLIC_KEYCLOAK_URL: "http://localhost:8080"
+      NEXT_PUBLIC_KEYCLOAK_REALM: "dubss"
+      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: "dubss-frontend"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - dubss_network
+    command: npm run dev
+
+  # API Institucional Simulada
+  institutional-api:
+    build:
+      context: ./services/institutional-api
+      dockerfile: Dockerfile
+    container_name: dubss_institutional_api
+    ports:
+      - "8001:8001"
+    networks:
+      - dubss_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Servicio de Machine Learning (Scikit-learn + SHAP)
+  ml-service:
+    build:
+      context: ./services/ml-service
+      dockerfile: Dockerfile
+    container_name: dubss_ml_service
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/ml-service/models:/app/models
+      - ./services/ml-service/data:/app/data
+    networks:
+      - dubss_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  dubss_network:
+    driver: bridge
