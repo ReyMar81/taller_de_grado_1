@@ -143,7 +143,12 @@ class EvaluacionIASerializer(serializers.ModelSerializer):
             'modelo_version',
             'tiempo_procesamiento_ms',
             'fecha_evaluacion',
-            'evaluado_por_usuario'
+            'evaluado_por_usuario',
+            # Nuevos campos de edición
+            'editado_manualmente',
+            'puntajes_originales_ia',
+            'fecha_ultima_edicion',
+            'editado_por_usuario'
         ]
         read_only_fields = ['id', 'fecha_evaluacion']
 

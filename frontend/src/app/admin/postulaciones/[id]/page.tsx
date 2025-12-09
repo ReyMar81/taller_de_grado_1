@@ -27,7 +27,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  LinearProgress
+  LinearProgress,
+  TextField
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -120,8 +121,18 @@ export default function AdminPostulacionDetailPage() {
   
   // Estados para evaluación IA
   const [evaluandoIA, setEvaluandoIA] = useState(false);
+  const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [dialogEvaluacionIA, setDialogEvaluacionIA] = useState(false);
-  const [evaluacionIA, setEvaluacionIA] = useState<EvaluacionIA | null>(null);
+  const [evaluacionIA, setEvaluacionIA] = useState<any>(null);
+  
+  // Estados para edición de puntajes
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [puntajesEditables, setPuntajesEditables] = useState({
+    socioeconomico: 0,
+    academico: 0,
+    total: 0
+  });
+  const [observacionesEdicion, setObservacionesEdicion] = useState('');
 
   useEffect(() => {
     fetchPostulacion();
@@ -208,17 +219,120 @@ export default function AdminPostulacionDetailPage() {
 
       const data = await response.json();
       
-      setEvaluacionIA(data.evaluacion);
+      // Guardar resultados en estado (PREVIEW - no guardado)
+      setEvaluacionIA(data.resultados);
+      setPuntajesEditables({
+        socioeconomico: data.resultados.puntaje_socioeconomico,
+        academico: data.resultados.puntaje_academico,
+        total: data.resultados.puntaje_total
+      });
       setDialogEvaluacionIA(true);
-      setSuccess('Evaluación IA completada exitosamente');
-      
-      // Recargar postulación para actualizar estado y puntaje
-      await fetchPostulacion();
+      setModoEdicion(false);
+      setObservacionesEdicion('');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al evaluar con IA');
     } finally {
       setEvaluandoIA(false);
+    }
+  };
+
+  const handleAceptarEvaluacion = async () => {
+    if (!evaluacionIA) return;
+
+    try {
+      setGuardandoEvaluacion(true);
+      setError('');
+
+      const response = await fetch(
+        `http://localhost:8000/api/postulaciones/${params.id}/guardar_evaluacion_ia/`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            puntaje_socioeconomico: evaluacionIA.puntaje_socioeconomico,
+            puntaje_academico: evaluacionIA.puntaje_academico,
+            puntaje_total: evaluacionIA.puntaje_total,
+            metadata_ia: evaluacionIA
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al guardar evaluación');
+      }
+
+      const data = await response.json();
+      setSuccess('Evaluación guardada exitosamente');
+      setDialogEvaluacionIA(false);
+      await fetchPostulacion();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar evaluación');
+    } finally {
+      setGuardandoEvaluacion(false);
+    }
+  };
+
+  const handleActivarEdicion = () => {
+    setModoEdicion(true);
+  };
+
+  const handleGuardarEdicion = async () => {
+    if (!evaluacionIA) return;
+    
+    // Validar observaciones si se editó
+    if (!observacionesEdicion.trim()) {
+      setError('Debe agregar observaciones al editar los puntajes');
+      return;
+    }
+
+    try {
+      setGuardandoEvaluacion(true);
+      setError('');
+
+      const response = await fetch(
+        `http://localhost:8000/api/postulaciones/${params.id}/guardar_evaluacion_ia/`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            puntaje_socioeconomico: puntajesEditables.socioeconomico,
+            puntaje_academico: puntajesEditables.academico,
+            puntaje_total: puntajesEditables.total,
+            observaciones: observacionesEdicion,
+            puntajes_originales: {
+              socioeconomico: evaluacionIA.puntaje_socioeconomico,
+              academico: evaluacionIA.puntaje_academico,
+              total: evaluacionIA.puntaje_total
+            },
+            metadata_ia: evaluacionIA
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al guardar evaluación');
+      }
+
+      const data = await response.json();
+      setSuccess('Evaluación guardada exitosamente (editada manualmente)');
+      setDialogEvaluacionIA(false);
+      setModoEdicion(false);
+      await fetchPostulacion();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar evaluación');
+    } finally {
+      setGuardandoEvaluacion(false);
     }
   };
 
@@ -567,150 +681,300 @@ export default function AdminPostulacionDetailPage() {
       {/* Dialog de Resultados Evaluación IA */}
       <Dialog 
         open={dialogEvaluacionIA} 
-        onClose={() => setDialogEvaluacionIA(false)}
+        onClose={() => !guardandoEvaluacion && setDialogEvaluacionIA(false)}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PsychologyIcon color="primary" />
-            <Typography variant="h6">Resultado Evaluación IA</Typography>
+            <Typography variant="h6">
+              {modoEdicion ? 'Editar Puntajes de Evaluación IA' : 'Resultado Evaluación IA (Preview)'}
+            </Typography>
           </Box>
+          {!modoEdicion && (
+            <Typography variant="caption" color="text.secondary">
+              Los puntajes aún no se han guardado. Puede aceptarlos o editarlos antes de guardar.
+            </Typography>
+          )}
         </DialogTitle>
         <DialogContent dividers>
           {evaluacionIA && (
             <Grid container spacing={3}>
-              {/* Puntajes */}
-              <Grid item xs={12}>
-                <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.main' }}>
-                  <CardContent>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Puntaje Socioeconómico
-                        </Typography>
-                        <Typography variant="h4" color="primary">
-                          {Number(evaluacionIA.puntaje_socioeconomico).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Puntaje Académico
-                        </Typography>
-                        <Typography variant="h4" color="primary">
-                          {Number(evaluacionIA.puntaje_academico).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Puntaje Total
-                        </Typography>
-                        <Typography variant="h3" color="primary.dark">
-                          {Number(evaluacionIA.puntaje_total).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Recomendación y Confianza */}
-              <Grid item xs={12} sm={6}>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Recomendación del Modelo:
-                  </Typography>
-                  <Chip
-                    label={evaluacionIA.recomendacion}
-                    color={
-                      evaluacionIA.recomendacion === 'APROBADO' ? 'success' :
-                      evaluacionIA.recomendacion === 'REVISION' ? 'warning' : 'error'
-                    }
-                    size="large"
-                    sx={{ fontSize: '1rem', px: 2, py: 2.5 }}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Nivel de Confianza:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={Number(evaluacionIA.confianza)} 
-                      sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
-                    />
-                    <Typography variant="h6" color="primary">
-                      {Number(evaluacionIA.confianza).toFixed(1)}%
-                    </Typography>
-                  </Box>
-                </Box>
-              </Grid>
-
-              {/* Factores Importantes (SHAP) */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="h6" gutterBottom>
-                  Factores Más Importantes (SHAP Analysis)
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Estos son los factores que más influyeron en la decisión del modelo:
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell><strong>Factor</strong></TableCell>
-                        <TableCell align="center"><strong>Valor SHAP</strong></TableCell>
-                        <TableCell align="center"><strong>Impacto</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {evaluacionIA.features_importantes.map((feature, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell>{feature.nombre}</TableCell>
-                          <TableCell align="center">
-                            <Typography
-                              color={Number(feature.valor_shap) > 0 ? 'success.main' : Number(feature.valor_shap) < 0 ? 'error.main' : 'text.secondary'}
-                              fontWeight="bold"
-                            >
-                              {Number(feature.valor_shap) > 0 ? '+' : ''}{Number(feature.valor_shap).toFixed(3)}
+              {!modoEdicion ? (
+                <>
+                  {/* MODO VISTA - Sin editar */}
+                  <Grid item xs={12}>
+                    <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.main' }}>
+                      <CardContent>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Puntaje Socioeconómico
                             </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={feature.impacto}
-                              size="small"
-                              color={feature.impacto === 'Positivo' ? 'success' : feature.impacto === 'Negativo' ? 'error' : 'default'}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Grid>
+                            <Typography variant="h4" color="primary">
+                              {Number(evaluacionIA.puntaje_socioeconomico).toFixed(2)}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Puntaje Académico
+                            </Typography>
+                            <Typography variant="h4" color="primary">
+                              {Number(evaluacionIA.puntaje_academico).toFixed(2)}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Puntaje Total
+                            </Typography>
+                            <Typography variant="h3" color="primary.dark">
+                              {Number(evaluacionIA.puntaje_total).toFixed(2)}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Recomendación y Confianza */}
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Recomendación del Modelo:
+                      </Typography>
+                      <Chip
+                        label={evaluacionIA.recomendacion}
+                        color={
+                          evaluacionIA.recomendacion === 'APROBADO' ? 'success' : 'error'
+                        }
+                        size="large"
+                        sx={{ fontSize: '1rem', px: 2, py: 2.5 }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Nivel de Confianza:
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={Number(evaluacionIA.confianza)} 
+                          sx={{ flexGrow: 1, height: 10, borderRadius: 5 }}
+                        />
+                        <Typography variant="h6" color="primary">
+                          {Number(evaluacionIA.confianza).toFixed(1)}%
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  {/* Factores Importantes (SHAP) */}
+                  {evaluacionIA.features_importantes && evaluacionIA.features_importantes.length > 0 && (
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="h6" gutterBottom>
+                        Factores Más Importantes (SHAP Analysis)
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Estos son los factores que más influyeron en la decisión del modelo:
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell><strong>Factor</strong></TableCell>
+                              <TableCell align="center"><strong>Valor SHAP</strong></TableCell>
+                              <TableCell align="center"><strong>Impacto</strong></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {evaluacionIA.features_importantes.map((feature: any, idx: number) => (
+                              <TableRow key={idx}>
+                                <TableCell>{feature.nombre}</TableCell>
+                                <TableCell align="center">
+                                  <Typography
+                                    color={Number(feature.valor_shap) > 0 ? 'success.main' : Number(feature.valor_shap) < 0 ? 'error.main' : 'text.secondary'}
+                                    fontWeight="bold"
+                                  >
+                                    {Number(feature.valor_shap) > 0 ? '+' : ''}{Number(feature.valor_shap).toFixed(3)}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Chip
+                                    label={feature.impacto}
+                                    size="small"
+                                    color={feature.impacto === 'Positivo' ? 'success' : feature.impacto === 'Negativo' ? 'error' : 'default'}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Grid>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* MODO EDICIÓN */}
+                  <Grid item xs={12}>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      Está editando los puntajes calculados por la IA. Se guardará un registro de auditoría con los puntajes originales.
+                    </Alert>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Puntaje Socioeconómico"
+                      type="number"
+                      value={puntajesEditables.socioeconomico}
+                      onChange={(e) => {
+                        const newSocio = parseFloat(e.target.value) || 0;
+                        setPuntajesEditables({
+                          socioeconomico: newSocio,
+                          academico: puntajesEditables.academico,
+                          total: newSocio + puntajesEditables.academico
+                        });
+                      }}
+                      inputProps={{ min: 0, max: 70, step: 0.01 }}
+                      helperText="Máximo 70 puntos"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Puntaje Académico"
+                      type="number"
+                      value={puntajesEditables.academico}
+                      onChange={(e) => {
+                        const newAcad = parseFloat(e.target.value) || 0;
+                        setPuntajesEditables({
+                          socioeconomico: puntajesEditables.socioeconomico,
+                          academico: newAcad,
+                          total: puntajesEditables.socioeconomico + newAcad
+                        });
+                      }}
+                      inputProps={{ min: 0, max: 30, step: 0.01 }}
+                      helperText="Máximo 30 puntos"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card sx={{ bgcolor: 'info.50', border: '1px solid', borderColor: 'info.main' }}>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Puntaje Total: {puntajesEditables.total.toFixed(2)} / 100
+                        </Typography>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={puntajesEditables.total} 
+                          sx={{ height: 10, borderRadius: 5 }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Observaciones (requerido al editar)"
+                      multiline
+                      rows={4}
+                      value={observacionesEdicion}
+                      onChange={(e) => setObservacionesEdicion(e.target.value)}
+                      required
+                      placeholder="Explique por qué modificó los puntajes..."
+                      helperText="Estas observaciones quedarán registradas en el historial de la evaluación"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Alert severity="info">
+                      <Typography variant="body2">
+                        <strong>Puntajes originales de la IA:</strong>
+                      </Typography>
+                      <Typography variant="caption">
+                        Socioeconómico: {Number(evaluacionIA.puntaje_socioeconomico).toFixed(2)} | 
+                        Académico: {Number(evaluacionIA.puntaje_academico).toFixed(2)} | 
+                        Total: {Number(evaluacionIA.puntaje_total).toFixed(2)}
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                </>
+              )}
 
               {/* Metadata */}
-              <Grid item xs={12}>
-                <Alert severity="info">
-                  <Typography variant="body2">
-                    <strong>Tipo de Evaluación:</strong> {evaluacionIA.tipo_evaluacion_aplicado}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Evaluado el: {new Date(evaluacionIA.fecha_evaluacion).toLocaleString()}
-                  </Typography>
-                </Alert>
-              </Grid>
+              {!modoEdicion && (
+                <Grid item xs={12}>
+                  <Alert severity="info">
+                    <Typography variant="body2">
+                      <strong>Tipo de Evaluación:</strong> {evaluacionIA.tipo_evaluacion_aplicado}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Modelo: {evaluacionIA.modelo_version} | Tiempo: {evaluacionIA.tiempo_procesamiento_ms}ms
+                    </Typography>
+                  </Alert>
+                </Grid>
+              )}
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogEvaluacionIA(false)}>
-            Cerrar
-          </Button>
+          {!modoEdicion ? (
+            <>
+              <Button 
+                onClick={() => setDialogEvaluacionIA(false)}
+                disabled={guardandoEvaluacion}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleActivarEdicion} 
+                variant="outlined"
+                disabled={guardandoEvaluacion}
+              >
+                Editar Puntajes
+              </Button>
+              <Button 
+                onClick={handleAceptarEvaluacion} 
+                variant="contained"
+                disabled={guardandoEvaluacion}
+                startIcon={guardandoEvaluacion ? <CircularProgress size={20} /> : null}
+              >
+                {guardandoEvaluacion ? 'Guardando...' : 'Aceptar y Guardar'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                onClick={() => {
+                  setModoEdicion(false);
+                  setPuntajesEditables({
+                    socioeconomico: evaluacionIA.puntaje_socioeconomico,
+                    academico: evaluacionIA.puntaje_academico,
+                    total: evaluacionIA.puntaje_total
+                  });
+                  setObservacionesEdicion('');
+                }}
+                disabled={guardandoEvaluacion}
+              >
+                Cancelar Edición
+              </Button>
+              <Button 
+                onClick={handleGuardarEdicion} 
+                variant="contained"
+                disabled={!observacionesEdicion.trim() || guardandoEvaluacion}
+                startIcon={guardandoEvaluacion ? <CircularProgress size={20} /> : null}
+              >
+                {guardandoEvaluacion ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
       </Container>

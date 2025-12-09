@@ -91,15 +91,6 @@
             font-weight: bold;
         }
         
-        .badge-revision {
-            background-color: #ff9800;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 8pt;
-            font-weight: bold;
-        }
-        
         .badge-rechazado {
             background-color: #f44336;
             color: white;
@@ -183,7 +174,7 @@
                 <td style="text-align: center;">{{ resultado.puntaje_acad|floatformat:2 }}</td>
                 <td style="text-align: center;" class="puntaje-total">{{ resultado.puntaje_total|floatformat:2 }}</td>
                 <td style="text-align: center;">
-                    <span class="badge-{% if resultado.recomendacion == 'APROBADO' %}aprobado{% elif resultado.recomendacion == 'REVISION' %}revision{% else %}rechazado{% endif %}">
+                    <span class="badge-{% if resultado.recomendacion == 'APROBADO' %}aprobado{% else %}rechazado{% endif %}">
                         {{ resultado.recomendacion }}
                     </span>
                 </td>
@@ -208,9 +199,8 @@
         <p><strong>NOTA:</strong> Este documento es generado automáticamente por el Sistema de Gestión de Becas.</p>
         <p>Los puntajes y recomendaciones son resultado de evaluación mediante IA con análisis SHAP para transparencia.</p>
         <p style="margin-top: 10px;">
-            <span class="badge-aprobado">APROBADO</span> = Puntaje ≥ 75 | 
-            <span class="badge-revision">REVISION</span> = Puntaje 60-74 | 
-            <span class="badge-rechazado">RECHAZADO</span> = Puntaje < 60
+            <span class="badge-aprobado">APROBADO</span> = Recomendado para aprobación | 
+            <span class="badge-rechazado">RECHAZADO</span> = Recomendado para rechazo
         </p>
     </div>
 </body>

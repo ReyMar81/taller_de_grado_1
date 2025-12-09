@@ -113,7 +113,7 @@ def validate_student(request):
 
 @extend_schema(
     summary="Registrar nuevo estudiante",
-    description="Registra un nuevo estudiante en Keycloak y Django con el rol de estudiante_postulante",
+    description="Registra un nuevo estudiante en Keycloak y Django con el rol de 'estudiante postulante'",
     request=RegisterStudentSerializer,
     responses={
         201: OpenApiResponse(
@@ -134,7 +134,7 @@ def register_student(request):
     Proceso:
     1. Valida datos del formulario
     2. Consulta sistema institucional
-    3. Crea usuario en Keycloak con rol estudiante_postulante
+    3. Crea usuario en Keycloak con rol 'estudiante postulante'
     4. Crea usuario en Django con perfil sincronizado
     """
     serializer = RegisterStudentSerializer(data=request.data)

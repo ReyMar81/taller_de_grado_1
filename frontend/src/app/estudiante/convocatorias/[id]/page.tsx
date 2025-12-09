@@ -329,51 +329,6 @@ export default function DetalleConvocatoriaPage() {
           </Grid>
         )}
       </Paper>
-
-      {/* Criterios de Evaluación */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Criterios de Evaluación
-        </Typography>
-        {criterios.length === 0 ? (
-          <Alert severity="info">No hay criterios definidos</Alert>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Criterio</TableCell>
-                  <TableCell>Descripción</TableCell>
-                  <TableCell align="right">Ponderación</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {criterios.map((criterio) => (
-                  <TableRow key={criterio.id}>
-                    <TableCell>{criterio.nombre}</TableCell>
-                    <TableCell>{criterio.descripcion}</TableCell>
-                    <TableCell align="right">
-                      <Chip label={`${criterio.ponderacion}%`} color="primary" size="small" />
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell colSpan={2} align="right">
-                    <strong>Total</strong>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Chip 
-                      label={`${criterios.reduce((sum, c) => sum + c.ponderacion, 0)}%`} 
-                      color="success"
-                    />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
-
       {/* Requisitos Documentales */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h5" gutterBottom>

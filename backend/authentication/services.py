@@ -164,7 +164,7 @@ class StudentRegistrationService:
         full_name: str,
         password: str
     ) -> Optional[str]:
-        """Crea usuario en Keycloak y asigna rol de estudiante_postulante"""
+        """Crea usuario en Keycloak y asigna rol de 'estudiante postulante'"""
         try:
             # Obtener token de admin
             admin_token = self._get_admin_token()
@@ -206,8 +206,11 @@ class StudentRegistrationService:
                 logger.error("No se pudo obtener ID del usuario creado")
                 return None
             
-            # Asignar rol de estudiante_postulante
-            self._assign_student_role(user_id, admin_token)
+            # Asignar rol de estudiante postulante
+            role_assigned = self._assign_student_role(user_id)
+            
+            if not role_assigned:
+                logger.warning(f"No se pudo asignar rol 'estudiante postulante' al usuario {user_id}")
             
             return user_id
             
@@ -215,14 +218,19 @@ class StudentRegistrationService:
             logger.exception(f"Error creando usuario en Keycloak: {str(e)}")
             return None
     
-    def _assign_student_role(self, user_id: str, admin_token: str) -> bool:
-        """Asigna el rol de estudiante_postulante al usuario"""
+    def _assign_student_role(self, user_id: str) -> bool:
+        """Asigna el rol de 'estudiante postulante' al usuario"""
         try:
-            # Obtener roles del cliente
-            roles_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients"
+            # Obtener token de admin (nuevo, no usar uno viejo)
+            admin_token = self._get_admin_token()
+            if not admin_token:
+                logger.error("No se pudo obtener token de admin para asignar rol")
+                return False
+            
             headers = {'Authorization': f'Bearer {admin_token}'}
             
-            # Buscar cliente dubss-backend
+            # Obtener UUID del cliente dubss-backend
+            roles_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients"
             response = requests.get(f"{roles_url}?clientId={self.client_id}", headers=headers)
             clients = response.json()
             
@@ -232,12 +240,12 @@ class StudentRegistrationService:
             
             client_uuid = clients[0]['id']
             
-            # Obtener rol estudiante_postulante
-            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/estudiante_postulante"
+            # Obtener rol estudiante postulante
+            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/estudiante%20postulante"
             response = requests.get(role_url, headers=headers)
             
             if response.status_code != 200:
-                logger.error("Rol estudiante_postulante no encontrado")
+                logger.error(f"Rol 'estudiante postulante' no encontrado en Keycloak: {response.status_code} - {response.text}")
                 return False
             
             role_data = response.json()
@@ -250,10 +258,15 @@ class StudentRegistrationService:
                 headers={'Authorization': f'Bearer {admin_token}', 'Content-Type': 'application/json'}
             )
             
-            return response.status_code == 204
+            if response.status_code == 204:
+                logger.info(f"Rol 'estudiante postulante' asignado correctamente al usuario {user_id}")
+                return True
+            else:
+                logger.error(f"Error asignando rol 'estudiante postulante': {response.status_code} - {response.text}")
+                return False
             
         except Exception as e:
-            logger.exception(f"Error asignando rol: {str(e)}")
+            logger.exception(f"Error asignando rol 'estudiante postulante': {str(e)}")
             return False
     
     def assign_role_to_user(self, keycloak_user_id: str, role_name: str) -> bool:
@@ -262,7 +275,7 @@ class StudentRegistrationService:
         
         Args:
             keycloak_user_id: ID del usuario en Keycloak
-            role_name: Nombre del rol (estudiante_postulante, estudiante_becado, etc.)
+            role_name: Nombre del rol ('estudiante postulante', 'estudiante becado', etc.)
         
         Returns:
             bool: True si se asignó correctamente
@@ -287,12 +300,16 @@ class StudentRegistrationService:
             
             client_uuid = clients[0]['id']
             
+            # URL encode del nombre del rol (espacios → %20)
+            from urllib.parse import quote
+            role_name_encoded = quote(role_name)
+            
             # Obtener el rol específico
-            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/{role_name}"
+            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/{role_name_encoded}"
             response = requests.get(role_url, headers=headers)
             
             if response.status_code != 200:
-                logger.error(f"Rol {role_name} no encontrado en Keycloak")
+                logger.error(f"Rol '{role_name}' no encontrado en Keycloak: {response.status_code}")
                 return False
             
             role_data = response.json()
@@ -347,12 +364,16 @@ class StudentRegistrationService:
             
             client_uuid = clients[0]['id']
             
+            # URL encode del nombre del rol (espacios → %20)
+            from urllib.parse import quote
+            role_name_encoded = quote(role_name)
+            
             # Obtener el rol específico
-            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/{role_name}"
+            role_url = f"{self.keycloak_url}/admin/realms/{self.realm}/clients/{client_uuid}/roles/{role_name_encoded}"
             response = requests.get(role_url, headers=headers)
             
             if response.status_code != 200:
-                logger.error(f"Rol {role_name} no encontrado en Keycloak")
+                logger.error(f"Rol '{role_name}' no encontrado en Keycloak: {response.status_code}")
                 return False
             
             role_data = response.json()

@@ -30,7 +30,6 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Visibility as VisibilityIcon,
   PlayArrow as PublishIcon,
   PlayArrow as PlayArrowIcon,
   Pause as PauseIcon,
@@ -267,14 +266,6 @@ export default function ConvocatoriasAdminPage() {
                   <TableCell>{conv.total_cupos}</TableCell>
                   <TableCell>{conv.creado_por?.nombre || 'N/A'}</TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => router.push(`/admin/convocatorias/${conv.id}`)}
-                      title="Ver detalles"
-                    >
-                      <VisibilityIcon fontSize="small" />
-                    </IconButton>
-
                     <IconButton
                       size="small"
                       onClick={() => router.push(`/admin/convocatorias/${conv.id}/editar`)}

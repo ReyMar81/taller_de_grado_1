@@ -392,7 +392,6 @@ class EvaluacionIA(models.Model):
     class RecomendacionChoices(models.TextChoices):
         APROBADO = 'APROBADO', 'Recomendado para Aprobación'
         RECHAZADO = 'RECHAZADO', 'Recomendado para Rechazo'
-        REVISION = 'REVISION', 'Requiere Revisión Manual'
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     postulacion = models.OneToOneField(
@@ -481,6 +480,30 @@ class EvaluacionIA(models.Model):
         blank=True,
         related_name='evaluaciones_ia_iniciadas',
         help_text="Usuario que solicitó la evaluación IA"
+    )
+    
+    # Edición manual
+    editado_manualmente = models.BooleanField(
+        default=False,
+        help_text="Indica si los puntajes fueron modificados manualmente después de la evaluación IA"
+    )
+    puntajes_originales_ia = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Puntajes originales calculados por la IA antes de edición manual (si aplica)"
+    )
+    fecha_ultima_edicion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha de la última edición manual de puntajes"
+    )
+    editado_por_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='evaluaciones_ia_editadas',
+        help_text="Usuario que realizó la última edición manual"
     )
     
     class Meta:

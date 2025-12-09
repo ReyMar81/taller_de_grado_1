@@ -40,6 +40,7 @@ from .serializers import (
 from convocatorias.permissions import IsEstudiante, IsDirectorOrAnalista
 from minio_service.storage import minio_storage
 from authentication.services import StudentRegistrationService
+from users.models import Usuario
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         )
         
         # Estudiantes solo ven sus postulaciones
-        if user.rol == 'ESTUDIANTE':
+        if user.rol in [Usuario.RolChoices.ESTUDIANTE_POSTULANTE, Usuario.RolChoices.ESTUDIANTE_BECADO]:
             queryset = queryset.filter(estudiante=user)
         
         return queryset
@@ -114,8 +115,8 @@ class PostulacionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsDirectorOrAnalista])
     def evaluar_ia(self, request, pk=None):
         """
-        Evalúa una postulación usando IA
-        Calcula puntajes según tipo de beca (DEPENDENCIA_70_30 o MERITO_100)
+        Evalúa una postulación usando IA (SOLO PREVIEW - NO GUARDA)
+        Retorna puntajes calculados para que el evaluador los revise antes de guardar
         """
         postulacion = self.get_object()
         
@@ -139,7 +140,7 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         # Verificar si ya tiene evaluación
         if hasattr(postulacion, 'evaluacion_ia'):
             return Response({
-                'error': 'Esta postulación ya tiene una evaluación IA. Elimínela primero si desea reevaluar.'
+                'error': 'Esta postulación ya tiene una evaluación guardada.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Obtener tipo de beca y ponderaciones
@@ -182,8 +183,6 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         }
         
         try:
-            # Llamar al microservicio IA (simulado por ahora)
-            # TODO: Reemplazar con llamada real cuando el microservicio esté disponible
             inicio = time.time()
             
             # URL del microservicio (configurar en settings)
@@ -209,37 +208,25 @@ class PostulacionViewSet(viewsets.ModelViewSet):
             
             tiempo_procesamiento = int((time.time() - inicio) * 1000)
             
-            # Crear evaluación IA
-            evaluacion = EvaluacionIA.objects.create(
-                postulacion=postulacion,
-                puntaje_socioeconomico=Decimal(str(resultado_ia['puntaje_socioeconomico'])),
-                puntaje_academico=Decimal(str(resultado_ia['puntaje_academico'])),
-                puntaje_total=Decimal(str(resultado_ia['puntaje_total'])),
-                ponderacion_socio_aplicada=ponderaciones['socioeconomico'],
-                ponderacion_academico_aplicada=ponderaciones['academico'],
-                tipo_evaluacion_aplicado=tipo_beca.tipo_evaluacion,
-                explicacion_shap=resultado_ia.get('shap_values', {}),
-                features_importantes=resultado_ia.get('features_importantes', []),
-                recomendacion=resultado_ia['recomendacion'],
-                confianza=Decimal(str(resultado_ia.get('confianza', 85.0))),
-                modelo_version=resultado_ia.get('modelo_version', 'v1.0-simulado'),
-                tiempo_procesamiento_ms=tiempo_procesamiento,
-                evaluado_por_usuario=request.user
-            )
-            
-            # Actualizar puntaje en postulación
-            postulacion.puntaje_socioeconomico = evaluacion.puntaje_socioeconomico
-            postulacion.puntaje_academico = evaluacion.puntaje_academico
-            postulacion.puntaje_total = evaluacion.puntaje_total
-            postulacion.estado = 'EVALUADO'  # Cambia a EVALUADO automáticamente
-            postulacion.save()
-            
-            serializer = EvaluacionIASerializer(evaluacion)
+            # NO GUARDAR - Solo retornar resultados como preview
             return Response({
                 'success': True,
-                'message': 'Evaluación IA completada exitosamente',
-                'evaluacion': serializer.data
-            }, status=status.HTTP_201_CREATED)
+                'message': 'Evaluación IA calculada (preview)',
+                'preview': True,
+                'resultados': {
+                    'puntaje_socioeconomico': float(resultado_ia['puntaje_socioeconomico']),
+                    'puntaje_academico': float(resultado_ia['puntaje_academico']),
+                    'puntaje_total': float(resultado_ia['puntaje_total']),
+                    'recomendacion': resultado_ia['recomendacion'],
+                    'confianza': float(resultado_ia.get('confianza', 85.0)),
+                    'features_importantes': resultado_ia.get('features_importantes', []),
+                    'explicacion_shap': resultado_ia.get('shap_values', {}),
+                    'modelo_version': resultado_ia.get('modelo_version', 'v1.0-simulado'),
+                    'tiempo_procesamiento_ms': tiempo_procesamiento,
+                    'tipo_evaluacion_aplicado': tipo_beca.tipo_evaluacion,
+                    'ponderaciones': ponderaciones
+                }
+            }, status=status.HTTP_200_OK)
             
         except requests.RequestException as e:
             return Response({
@@ -248,6 +235,90 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({
                 'error': f'Error inesperado: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsDirectorOrAnalista])
+    def guardar_evaluacion_ia(self, request, pk=None):
+        """
+        Guarda evaluación IA con posibilidad de haber editado puntajes
+        Recibe los puntajes finales (editados o no) y los guarda en la BD
+        """
+        postulacion = self.get_object()
+        
+        # Validar estado
+        if postulacion.estado != 'RECEPCIONADO':
+            return Response({
+                'error': f'Solo se pueden guardar evaluaciones en estado RECEPCIONADO (actual: {postulacion.get_estado_display()})'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar si ya existe evaluación
+        if hasattr(postulacion, 'evaluacion_ia'):
+            return Response({
+                'error': 'Ya existe una evaluación guardada para esta postulación.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Extraer datos del request
+        puntaje_socio = request.data.get('puntaje_socioeconomico')
+        puntaje_acad = request.data.get('puntaje_academico')
+        puntaje_total = request.data.get('puntaje_total')
+        observaciones = request.data.get('observaciones', '')
+        puntajes_originales = request.data.get('puntajes_originales')
+        metadata_ia = request.data.get('metadata_ia', {})
+        
+        if puntaje_socio is None or puntaje_acad is None or puntaje_total is None:
+            return Response({
+                'error': 'Faltan puntajes requeridos (puntaje_socioeconomico, puntaje_academico, puntaje_total)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Determinar si fue editado manualmente
+        editado = puntajes_originales is not None
+        
+        try:
+            # Crear evaluación IA
+            evaluacion = EvaluacionIA.objects.create(
+                postulacion=postulacion,
+                puntaje_socioeconomico=Decimal(str(puntaje_socio)),
+                puntaje_academico=Decimal(str(puntaje_acad)),
+                puntaje_total=Decimal(str(puntaje_total)),
+                ponderacion_socio_aplicada=metadata_ia.get('ponderaciones', {}).get('socioeconomico', 70),
+                ponderacion_academico_aplicada=metadata_ia.get('ponderaciones', {}).get('academico', 30),
+                tipo_evaluacion_aplicado=metadata_ia.get('tipo_evaluacion_aplicado', 'DEPENDENCIA_70_30'),
+                explicacion_shap=metadata_ia.get('explicacion_shap', {}),
+                features_importantes=metadata_ia.get('features_importantes', []),
+                recomendacion=metadata_ia.get('recomendacion', 'REVISION'),
+                confianza=Decimal(str(metadata_ia.get('confianza', 0))),
+                modelo_version=metadata_ia.get('modelo_version', 'v1.0'),
+                tiempo_procesamiento_ms=metadata_ia.get('tiempo_procesamiento_ms'),
+                evaluado_por_usuario=request.user,
+                # Nuevos campos de edición
+                editado_manualmente=editado,
+                puntajes_originales_ia=puntajes_originales,
+                editado_por_usuario=request.user if editado else None,
+                fecha_ultima_edicion=timezone.now() if editado else None
+            )
+            
+            # Actualizar postulación
+            postulacion.puntaje_socioeconomico = Decimal(str(puntaje_socio))
+            postulacion.puntaje_academico = Decimal(str(puntaje_acad))
+            postulacion.puntaje_total = Decimal(str(puntaje_total))
+            postulacion.estado = 'EVALUADO'
+            postulacion.evaluado_por = request.user
+            postulacion.fecha_evaluacion = timezone.now()
+            if observaciones:
+                postulacion.observaciones = observaciones
+            postulacion.save()
+            
+            serializer = EvaluacionIASerializer(evaluacion)
+            return Response({
+                'success': True,
+                'message': f'Evaluación guardada exitosamente{" (editada manualmente)" if editado else ""}',
+                'editado': editado,
+                'evaluacion': serializer.data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al guardar evaluación: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['post'], permission_classes=[IsDirectorOrAnalista])
@@ -566,14 +637,21 @@ class PostulacionViewSet(viewsets.ModelViewSet):
                     usuario.rol = 'ESTUDIANTE_BECADO'
                     usuario.save()
                 
-                # Sincronizar rol en Keycloak
+                # Sincronizar rol en Keycloak (quitar rol anterior y asignar nuevo)
                 if usuario.keycloak_user_id:
-                    # Asignar nuevo rol estudiante_becado
+                    # Quitar rol 'estudiante postulante'
+                    keycloak_service.remove_role_from_user(
+                        usuario.keycloak_user_id,
+                        'estudiante postulante'
+                    )
+                    logger.info(f"Rol 'estudiante postulante' removido en Keycloak para {usuario.correo}")
+                    
+                    # Asignar nuevo rol 'estudiante becado'
                     keycloak_service.assign_role_to_user(
                         usuario.keycloak_user_id,
-                        'estudiante_becado'
+                        'estudiante becado'
                     )
-                    logger.info(f"Rol estudiante_becado asignado en Keycloak para {usuario.correo}")
+                    logger.info(f"Rol 'estudiante becado' asignado en Keycloak para {usuario.correo}")
                 else:
                     logger.warning(f"Usuario {usuario.correo} no tiene keycloak_user_id")
                 
@@ -776,29 +854,77 @@ class PostulacionViewSet(viewsets.ModelViewSet):
         
         puntaje_total = puntaje_socio_final + puntaje_acad_final
         
-        # ============= DETERMINAR RECOMENDACIÓN =============
-        if puntaje_total >= 75:
+        # ============= DETERMINAR RECOMENDACIÓN CON REGLAS INTELIGENTES =============
+        # Calcular ratio crítico: dependientes / ingreso per cápita
+        ratio_dependientes_ingreso = num_dependientes / max(ingreso_pc, 1)
+        
+        # Regla 1: Necesidad económica extrema
+        necesidad_extrema = (ingreso_pc < 600 and num_dependientes >= 3) or (ingreso_pc < 400)
+        
+        # Regla 2: Situación vulnerable + rendimiento aceptable
+        vulnerable = (form_socio.get('tiene_discapacidad') or 
+                     form_socio.get('es_madre_soltera') or 
+                     form_socio.get('es_padre_soltero') or
+                     form_socio.get('proviene_area_rural'))
+        rendimiento_aceptable = promedio >= 60
+        
+        # Regla 3: Alto ratio dependientes/ingreso (más de 0.005 = 5 dependientes por cada 1000 Bs)
+        ratio_critico = ratio_dependientes_ingreso > 0.005
+        
+        # Regla 4: Excelencia académica compensa necesidad moderada
+        excelencia_academica = promedio >= 85 and form_academico.get('materias_reprobadas', 0) == 0
+        necesidad_moderada = ingreso_pc < 2000
+        
+        # DECISIÓN INTELIGENTE
+        if necesidad_extrema and rendimiento_aceptable:
+            # Caso crítico: pobreza extrema + no está reprobando todo
             recomendacion = 'APROBADO'
-            confianza = 90.0 + (puntaje_total - 75) / 2.5
-        elif puntaje_total >= 60:
-            recomendacion = 'REVISION'
-            confianza = 70.0 + (puntaje_total - 60) / 1.5
+            confianza = 95.0
+            razon_principal = 'necesidad_economica_extrema'
+        elif vulnerable and promedio >= 70 and puntaje_total >= 50:
+            # Situación vulnerable + rendimiento decente
+            recomendacion = 'APROBADO'
+            confianza = 88.0
+            razon_principal = 'situacion_vulnerable'
+        elif ratio_critico and promedio >= 65:
+            # Muchos dependientes vs bajo ingreso
+            recomendacion = 'APROBADO'
+            confianza = 85.0
+            razon_principal = 'ratio_dependientes_critico'
+        elif excelencia_academica and necesidad_moderada:
+            # Brillante académicamente + necesita apoyo
+            recomendacion = 'APROBADO'
+            confianza = 90.0
+            razon_principal = 'excelencia_academica'
+        elif puntaje_total >= 65:
+            # Puntaje general alto
+            recomendacion = 'APROBADO'
+            confianza = 80.0 + (puntaje_total - 65) / 2.0
+            razon_principal = 'puntaje_total_alto'
+        elif puntaje_total >= 55 and (vulnerable or ratio_critico):
+            # Puntaje medio pero con factores de riesgo social
+            recomendacion = 'APROBADO'
+            confianza = 75.0
+            razon_principal = 'factores_sociales_criticos'
         else:
+            # No cumple criterios de aprobación
             recomendacion = 'RECHAZADO'
-            confianza = 60.0 + puntaje_total / 6
+            confianza = 60.0 + min(puntaje_total, 50) / 6
+            razon_principal = 'puntaje_insuficiente'
         
         # ============= PREPARAR VALORES SHAP COMBINADOS =============
         shap_values = {**shap_socio, **shap_acad}
         
-        # Top 5 features más importantes
+        # Top 5 features más importantes (excluir metadata)
         all_features = []
         for feature, value in shap_values.items():
-            all_features.append({
-                'feature': feature,
-                'nombre': feature.replace('_', ' ').title(),
-                'valor_shap': round(value, 3),
-                'impacto': 'Positivo' if value > 0 else 'Negativo' if value < 0 else 'Neutral'
-            })
+            if isinstance(value, (int, float)):  # Solo procesar valores numéricos
+                all_features.append({
+                    'feature': feature,
+                    'nombre': feature.replace('_', ' ').title(),
+                    'valor_shap': round(value, 3),
+                    'impacto': 'Positivo' if value > 0 else 'Negativo' if value < 0 else 'Neutral'
+                })
         
         # Ordenar por valor absoluto de SHAP
         all_features.sort(key=lambda x: abs(x['valor_shap']), reverse=True)
@@ -812,6 +938,7 @@ class PostulacionViewSet(viewsets.ModelViewSet):
             'confianza': round(min(99.5, confianza), 2),
             'shap_values': shap_values,
             'features_importantes': features_importantes,
+            'razon_decision': razon_principal,
             'modelo_version': 'v1.0-simulado',
             'metadata': {
                 'tipo_evaluacion': 'Dependencia 70-30' if ponderaciones['socioeconomico'] > 0 else 'Excelencia 100% Académico',
@@ -1023,7 +1150,7 @@ class DocumentoPostulacionViewSet(viewsets.ModelViewSet):
             'revisado_por'
         )
         
-        if user.rol == 'ESTUDIANTE':
+        if user.rol in [Usuario.RolChoices.ESTUDIANTE_POSTULANTE, Usuario.RolChoices.ESTUDIANTE_BECADO]:
             queryset = queryset.filter(postulacion__estudiante=user)
         
         return queryset
