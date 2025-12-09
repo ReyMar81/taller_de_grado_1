@@ -18,7 +18,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { Add as AddIcon, Visibility as ViewIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Visibility as ViewIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
 interface Postulacion {
@@ -97,11 +97,21 @@ export default function MisPostulacionesPage() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Mis Postulaciones
-        </Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="xl">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700 }}>
+            Mis Postulaciones
+          </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -175,6 +185,7 @@ export default function MisPostulacionesPage() {
           </Table>
         </TableContainer>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 }

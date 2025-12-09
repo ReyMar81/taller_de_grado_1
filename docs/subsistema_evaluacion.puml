@@ -1,0 +1,208 @@
+@startuml Subsistema_Evaluacion
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor Plum
+    BorderColor Black
+    ArrowColor Black
+    FontSize 11
+}
+
+skinparam interface {
+    BackgroundColor LightYellow
+    BorderColor Black
+}
+
+title Diagrama de Componentes del Subsistema Evaluación
+
+' ============================================================================
+' CLIENTE
+' ============================================================================
+package "Cliente" <<cliente>> {
+    component [Interfaz Web\nEvaluación] as UIEvaluacion
+    component [Interfaz Web\nResultados IA] as UIResultadosIA
+}
+
+' ============================================================================
+' SERVIDOR - SUBSISTEMA EVALUACIÓN
+' ============================================================================
+package "Servidor - Subsistema Evaluación" <<servidor>> {
+    
+    ' Interfaces
+    interface "<<interface>>\nEvaluacionController" as IEvaluacionController
+    interface "<<interface>>\nIAController" as IIAController
+    
+    ' Servicios
+    component "<<interface>>\nEvaluacionService" as EvaluacionService {
+        [iniciarEvaluacion()]
+        [evaluarManual()]
+        [aprobarRechazar()]
+        [generarRanking()]
+        [asignarBecas()]
+    }
+    
+    component "<<interface>>\nEvaluacionIAService" as EvaluacionIAService {
+        [solicitarEvaluacionIA()]
+        [obtenerPrediccion()]
+        [obtenerExplicacion()]
+        [guardarResultados()]
+    }
+    
+    component "<<interface>>\nDictamenService" as DictamenService {
+        [emitirDictamen()]
+        [validarDictamen()]
+        [aprobarDictamen()]
+    }
+    
+    component "<<interface>>\nRankingService" as RankingService {
+        [calcularPuntajeTotal()]
+        [generarListaOrdenada()]
+        [aplicarCupos()]
+        [generarReporte()]
+    }
+    
+    component "<<interface>>\nEvaluacionMapper" as EvaluacionMapper {
+        [Evaluacion → DTO]
+        [ResultadoIA → DTO]
+        [validarDatos()]
+    }
+}
+
+' ============================================================================
+' MICROSERVICIO ML
+' ============================================================================
+package "Microservicio ML" <<microservicio>> {
+    component "ML Service\nFastAPI" as MLService {
+        [/api/v1/evaluar/dependencia]
+        [/api/v1/evaluar/merito]
+        [/api/v1/explicar/shap]
+    }
+    
+    component "Modelos ML" as ModelosML {
+        [Scikit-learn 1.4.2]
+        [modelo_dependencia_70_30.pkl]
+        [modelo_merito_100.pkl]
+    }
+    
+    component "Explicabilidad" as SHAP {
+        [SHAP 0.45.1]
+        [TreeExplainer]
+        [Feature Importance]
+    }
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA
+' ============================================================================
+package "<<OLTP>>\nServicio Base de Datos" <<servicio>> {
+    database "PostgreSQL" {
+        [<<table>>\nEvaluacionIA]
+        [<<table>>\nPostulacion]
+        [<<table>>\nRanking]
+    }
+    
+    component "Blockchain Service" as Blockchain {
+        [registrarEvento()]
+        [EVALUACION_IA]
+        [EVALUACION_MANUAL]
+        [DECISION_CONSEJO]
+        [BECA_ASIGNADA]
+    }
+    
+    component "Motor de Reglas\nDurable Rules" as DurableRules {
+        [ReglasEvaluacion]
+        [CriteriosDependencia]
+        [CriteriosMerito]
+    }
+}
+
+' ============================================================================
+' RELACIONES - CLIENTE CON SERVIDOR
+' ============================================================================
+UIEvaluacion --> IEvaluacionController : <<HTTP>>\nREST
+UIResultadosIA --> IIAController : <<HTTP>>\nREST
+
+' ============================================================================
+' RELACIONES - SERVIDOR INTERNO
+' ============================================================================
+IEvaluacionController --> EvaluacionService : utiliza
+IIAController --> EvaluacionIAService : utiliza
+
+EvaluacionService --> EvaluacionMapper : utiliza
+EvaluacionService --> DictamenService : utiliza
+EvaluacionService --> RankingService : utiliza
+EvaluacionIAService --> EvaluacionMapper : utiliza
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON MICROSERVICIO ML
+' ============================================================================
+EvaluacionIAService --> MLService : <<HTTP>>\nREST API
+MLService --> ModelosML : carga modelos
+MLService --> SHAP : explica predicciones
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON BASE DE DATOS
+' ============================================================================
+EvaluacionService --> "<<table>>\nPostulacion" : UPDATE
+EvaluacionIAService --> "<<table>>\nEvaluacionIA" : CRUD
+RankingService --> "<<table>>\nRanking" : CREATE
+EvaluacionService --> DurableRules : valida reglas
+EvaluacionService --> Blockchain : registrar eventos
+
+' ============================================================================
+' NOTAS
+' ============================================================================
+note right of EvaluacionService
+  **Funcionalidades:**
+  • Evaluación automática con IA
+  • Evaluación manual por analista
+  • Generación de rankings
+  • Asignación de becas
+  • Aprobación/rechazo
+  
+  **Proceso:**
+  1. Evaluación IA (predictiva)
+  2. Revisión manual (analista)
+  3. Dictamen técnico
+  4. Ranking final
+  5. Asignación según cupos
+end note
+
+note right of MLService
+  **Tecnologías:**
+  • FastAPI 0.111
+  • Scikit-learn 1.4.2
+  • SHAP 0.45.1
+  
+  **Modelos:**
+  • Random Forest
+  • Gradient Boosting
+  
+  **Explicabilidad:**
+  • SHAP Values
+  • Feature Importance
+  • Transparencia en decisiones
+end note
+
+note bottom of DurableRules
+  **Criterios de Evaluación:**
+  
+  **Becas Dependencia (70-30):**
+  • 70% Socioeconómico
+  • 30% Académico
+  
+  **Becas Mérito (100% Académico):**
+  • Excelencia semestral
+  • Excelencia anual
+end note
+
+note bottom of Blockchain
+  **Trazabilidad:**
+  • Registro de evaluación IA
+  • Registro de evaluación manual
+  • Decisiones del consejo
+  • Asignación de becas
+  • Inmutabilidad garantizada
+end note
+
+@enduml

@@ -18,6 +18,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useAuthStore } from '@/store/authStore';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
 const steps = ['Información Básica', 'Cupos y Criterios', 'Requisitos'];
 
@@ -137,12 +138,27 @@ Conforme a: Resolución ICU Nº 061-2024`,
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Nueva Convocatoria de Becas
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="md">
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => router.push('/admin/convocatorias')}
+              sx={{ 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': { borderColor: '#C62828', bgcolor: 'rgba(255,255,255,0.1)' }
+              }}
+            >
+              Volver
+            </Button>
+            <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700 }}>
+              Nueva Convocatoria de Becas
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
           Define el periodo académico y las fechas. Después podrás seleccionar las becas oficiales a ofrecer y configurar cupos, criterios y requisitos.
         </Typography>
       </Box>
@@ -274,6 +290,7 @@ Conforme a: Resolución ICU Nº 061-2024`,
           </Grid>
         </form>
       </Paper>
-    </Container>
+      </Container>
+    </Box>
   );
 }

@@ -18,7 +18,8 @@ import {
 import {
   CalendarToday as CalendarIcon,
   School as SchoolIcon,
-  Event as EventIcon
+  Event as EventIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
@@ -95,27 +96,37 @@ export default function ConvocatoriasEstudiantePage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Convocatorias de Becas Disponibles
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'white', fontWeight: 700 }}>
+            Convocatorias de Becas Disponibles
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
           Revisa las convocatorias activas y postula a las becas disponibles
         </Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {convocatorias.length === 0 ? (
-        <Alert severity="info">
-          No hay convocatorias activas en este momento. Vuelve a revisar más tarde.
-        </Alert>
-      ) : (
-        <Grid container spacing={3}>
-          {convocatorias.map((convocatoria) => (
-            <Grid item xs={12} key={convocatoria.id}>
-              <Card>
+        {convocatorias.length === 0 ? (
+          <Alert severity="info">
+            No hay convocatorias activas en este momento. Vuelve a revisar más tarde.
+          </Alert>
+        ) : (
+          <Grid container spacing={3}>
+            {convocatorias.map((convocatoria) => (
+              <Grid item xs={12} key={convocatoria.id}>
+                <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Typography variant="h5" component="h2">
@@ -186,8 +197,9 @@ export default function ConvocatoriasEstudiantePage() {
               </Card>
             </Grid>
           ))}
-        </Grid>
-      )}
-    </Container>
+          </Grid>
+        )}
+      </Container>
+    </Box>
   );
 }

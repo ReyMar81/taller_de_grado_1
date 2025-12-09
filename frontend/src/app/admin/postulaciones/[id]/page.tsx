@@ -33,7 +33,8 @@ import {
   ArrowBack as BackIcon,
   Download as DownloadIcon,
   Assessment as AssessmentIcon,
-  Psychology as PsychologyIcon
+  Psychology as PsychologyIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
@@ -238,14 +239,16 @@ export default function AdminPostulacionDetailPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Button
-        startIcon={<BackIcon />}
-        onClick={() => router.push('/admin/postulaciones')}
-        sx={{ mb: 2 }}
-      >
-        Volver a Postulaciones
-      </Button>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/admin/postulaciones')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
@@ -710,6 +713,7 @@ export default function AdminPostulacionDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Container>
+    </Box>
   );
 }

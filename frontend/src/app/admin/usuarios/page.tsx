@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Paper,
@@ -34,6 +35,7 @@ import {
   Edit as EditIcon,
   Block as BlockIcon,
   Refresh as RefreshIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/services/api';
@@ -50,6 +52,7 @@ interface Usuario {
 }
 
 export default function GestionUsuariosPage() {
+  const router = useRouter();
   const { token } = useAuthStore();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(false);
@@ -214,9 +217,19 @@ export default function GestionUsuariosPage() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Gestión de Usuarios Administrativos</Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Box sx={{ px: 3 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" sx={{ color: 'white', fontWeight: 700 }}>Gestión de Usuarios Administrativos</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
@@ -424,6 +437,7 @@ export default function GestionUsuariosPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

@@ -46,13 +46,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h4" component="h1">
-              Dashboard DUBSS
-            </Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Box sx={{ mb: 4 }}>
+          <Paper elevation={3} sx={{ p: 4 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h4" component="h1" sx={{ color: '#C62828', fontWeight: 700 }}>
+                Dashboard DUBSS
+              </Typography>
             <Button
               variant="outlined"
               color="error"
@@ -277,15 +278,13 @@ export default function DashboardPage() {
           </Box>
 
           <Box sx={{ mt: 4, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-            <Typography variant="body2">
-              ✅ <strong>RF1: Autenticación institucional con gestión de roles (RBAC)</strong> - Implementado correctamente
-            </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 1 }}>
               Tu sesión está activa con Keycloak y tus permisos están configurados según tu rol.
             </Typography>
           </Box>
         </Paper>
       </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 }

@@ -35,6 +35,8 @@ services:
       KC_HTTP_ENABLED: true
     ports:
       - "8080:8080"
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes
     command: start-dev
     depends_on:
       postgres:

@@ -1,0 +1,140 @@
+@startuml Subsistema_Usuarios
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor LightBlue
+    BorderColor Black
+    ArrowColor Black
+    FontSize 11
+}
+
+skinparam interface {
+    BackgroundColor LightYellow
+    BorderColor Black
+}
+
+title Diagrama de Componentes del Subsistema Usuarios
+
+' ============================================================================
+' CLIENTE
+' ============================================================================
+package "Cliente" <<cliente>> {
+    component [Interfaz Web\nUsuarios] as UIUsuarios
+    component [Interfaz Web\nAutenticación] as UIAuth
+}
+
+' ============================================================================
+' SERVIDOR - SUBSISTEMA USUARIOS
+' ============================================================================
+package "Servidor - Subsistema Usuarios" <<servidor>> {
+    
+    ' Interfaces
+    interface "<<interface>>\nUsuarioController" as IUsuarioController
+    interface "<<interface>>\nAuthController" as IAuthController
+    
+    ' Servicios
+    component "<<interface>>\nUsuarioService" as UsuarioService {
+        [obtenerUsuarios()]
+        [obtenerUsuarioPorId()]
+        [obtenerPerfilActual()]
+        [actualizarPerfil()]
+    }
+    
+    component "<<interface>>\nAuthenticationService" as AuthService {
+        [validarToken()]
+        [validarEstudiante()]
+        [registrarEstudiante()]
+        [sincronizarKeycloak()]
+    }
+    
+    component "<<interface>>\nUsuarioDataMapper" as UsuarioMapper {
+        [Usuario → DTO]
+        [DTO → Usuario]
+        [validarDatos()]
+    }
+    
+    component "<<interface>>\nKeycloakIntegration" as KeycloakIntegration {
+        [crearUsuario()]
+        [asignarRoles()]
+        [obtenerRoles()]
+        [validarToken()]
+    }
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA
+' ============================================================================
+package "<<OLTP>>\nServicio Base de Datos" <<servicio>> {
+    database "PostgreSQL" {
+        [<<table>>\nUsuarios]
+        [<<table>>\nPerfilEstudiante]
+        [<<table>>\nPerfilInstitucional]
+    }
+    
+    component "Keycloak\nIdentity Server" as Keycloak {
+        [<<realm>>\ndubss]
+        [<<client>>\ndubss-backend]
+        [<<roles>>]
+    }
+    
+    component "API Institucional" as APIInstitucional {
+        [validarRegistro()]
+        [obtenerDatosEstudiante()]
+    }
+}
+
+' ============================================================================
+' RELACIONES - CLIENTE CON SERVIDOR
+' ============================================================================
+UIUsuarios --> IUsuarioController : <<HTTP>>\nREST
+UIAuth --> IAuthController : <<HTTP>>\nREST
+
+' ============================================================================
+' RELACIONES - SERVIDOR INTERNO
+' ============================================================================
+IUsuarioController --> UsuarioService : utiliza
+IAuthController --> AuthService : utiliza
+
+UsuarioService --> UsuarioMapper : utiliza
+AuthService --> UsuarioMapper : utiliza
+AuthService --> KeycloakIntegration : utiliza
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON BASE DE DATOS
+' ============================================================================
+UsuarioService --> "<<table>>\nUsuarios" : CRUD
+UsuarioService --> "<<table>>\nPerfilEstudiante" : CRUD
+UsuarioService --> "<<table>>\nPerfilInstitucional" : CRUD
+
+KeycloakIntegration --> Keycloak : <<OAuth2>>\nOIDC
+AuthService --> APIInstitucional : <<HTTP>>\nREST
+
+' ============================================================================
+' NOTAS
+' ============================================================================
+note right of UsuarioService
+  **Funcionalidades:**
+  • Gestión de perfiles de usuario
+  • Consulta de usuarios por rol
+  • Actualización de información
+  • Perfil del usuario autenticado
+end note
+
+note right of AuthService
+  **Funcionalidades:**
+  • Validación de tokens JWT
+  • Registro de estudiantes
+  • Sincronización con Keycloak
+  • Validación institucional
+end note
+
+note bottom of Keycloak
+  **Roles del Sistema:**
+  • Director DUBSS
+  • Analista de Becas
+  • Responsable Seguimiento
+  • Estudiante Postulante
+  • Estudiante Becado
+end note
+
+@enduml

@@ -1,0 +1,198 @@
+@startuml Subsistema_Seguimiento
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor LightCyan
+    BorderColor Black
+    ArrowColor Black
+    FontSize 11
+}
+
+skinparam interface {
+    BackgroundColor LightYellow
+    BorderColor Black
+}
+
+title Diagrama de Componentes del Subsistema Seguimiento Académico
+
+' ============================================================================
+' CLIENTE
+' ============================================================================
+package "Cliente" <<cliente>> {
+    component [Interfaz Web\nSeguimiento\nEstudiante] as UISeguimientoEst
+    component [Interfaz Web\nRevisión\nResponsable] as UIRevision
+}
+
+' ============================================================================
+' SERVIDOR - SUBSISTEMA SEGUIMIENTO
+' ============================================================================
+package "Servidor - Subsistema Seguimiento Académico" <<servidor>> {
+    
+    ' Interfaces
+    interface "<<interface>>\nSeguimientoEstudianteController" as ISeguimientoEstController
+    interface "<<interface>>\nSeguimientoResponsableController" as ISeguimientoRespController
+    
+    ' Servicios
+    component "<<interface>>\nSeguimientoService" as SeguimientoService {
+        [crearSeguimiento()]
+        [listarSeguimientos()]
+        [obtenerMisBecas()]
+        [enviarReporteMensual()]
+    }
+    
+    component "<<interface>>\nRevisionService" as RevisionService {
+        [listarPendientes()]
+        [revisarSeguimiento()]
+        [aprobarReporte()]
+        [registrarObservacion()]
+        [generarAlerta()]
+    }
+    
+    component "<<interface>>\nAlertaService" as AlertaService {
+        [crearAlerta()]
+        [evaluarCumplimiento()]
+        [recomendarSuspension()]
+        [recomendarRenovacion()]
+    }
+    
+    component "<<interface>>\nDocumentoSeguimientoService" as DocSeguimientoService {
+        [subirReporteMensual()]
+        [validarDocumento()]
+        [generarConstancia()]
+    }
+    
+    component "<<interface>>\nSeguimientoMapper" as SeguimientoMapper {
+        [Seguimiento → DTO]
+        [DTO → Seguimiento]
+        [validarReporte()]
+    }
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA Y ALMACENAMIENTO
+' ============================================================================
+package "<<OLTP>>\nServicio Base de Datos" <<servicio>> {
+    database "PostgreSQL" {
+        [<<table>>\nSeguimientoBeca]
+        [<<table>>\nPostulacion]
+        [<<table>>\nAlerta]
+    }
+    
+    component "MinIO\nAlmacenamiento S3" as MinIO {
+        [bucket:\nseguimientos/2025]
+        [Reportes mensuales]
+        [Constancias]
+    }
+    
+    component "Blockchain Service" as Blockchain {
+        [registrarEvento()]
+        [SEGUIMIENTO_CREADO]
+        [SEGUIMIENTO_APROBADO]
+        [ALERTA_GENERADA]
+        [RENOVACION_BECA]
+    }
+    
+    component "Motor de Reglas\nDurable Rules" as DurableRules {
+        [ReglasCumplimiento]
+        [ReglasAlerta]
+        [ReglasRenovacion]
+    }
+}
+
+' ============================================================================
+' RELACIONES - CLIENTE CON SERVIDOR
+' ============================================================================
+UISeguimientoEst --> ISeguimientoEstController : <<HTTP>>\nREST
+UIRevision --> ISeguimientoRespController : <<HTTP>>\nREST
+
+' ============================================================================
+' RELACIONES - SERVIDOR INTERNO
+' ============================================================================
+ISeguimientoEstController --> SeguimientoService : utiliza
+ISeguimientoRespController --> RevisionService : utiliza
+
+SeguimientoService --> SeguimientoMapper : utiliza
+SeguimientoService --> DocSeguimientoService : utiliza
+RevisionService --> AlertaService : utiliza
+RevisionService --> SeguimientoMapper : utiliza
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON BASE DE DATOS
+' ============================================================================
+SeguimientoService --> "<<table>>\nSeguimientoBeca" : CRUD
+SeguimientoService --> "<<table>>\nPostulacion" : READ
+RevisionService --> "<<table>>\nSeguimientoBeca" : UPDATE
+AlertaService --> "<<table>>\nAlerta" : CRUD
+
+DocSeguimientoService --> MinIO : upload/download
+SeguimientoService --> Blockchain : registrar eventos
+AlertaService --> DurableRules : evaluar reglas
+
+' ============================================================================
+' NOTAS
+' ============================================================================
+note right of SeguimientoService
+  **Funcionalidades Estudiante:**
+  • Enviar reportes mensuales
+  • Consultar historial de cumplimiento
+  • Ver alertas activas
+  • Solicitar renovación de beca
+  • Ver estado de seguimiento
+  
+  **Obligaciones:**
+  • Reporte mensual obligatorio
+  • Mantener rendimiento académico
+  • Cumplir asistencia
+  • Renovar documentación semestral
+end note
+
+note right of RevisionService
+  **Funcionalidades Responsable:**
+  • Revisar reportes mensuales
+  • Validar cumplimiento
+  • Registrar observaciones
+  • Generar alertas automáticas
+  • Recomendar suspensión/renovación
+  
+  **Estados de Seguimiento:**
+  • PENDIENTE
+  • APROBADO
+  • OBSERVADO
+  • RECHAZADO
+end note
+
+note right of AlertaService
+  **Sistema de Alertas:**
+  
+  **Tipos de Alerta:**
+  • Bajo rendimiento académico
+  • Inasistencias frecuentes
+  • Incumplimiento de reportes
+  • Falta de documentación
+  
+  **Acciones:**
+  • Notificación al estudiante
+  • Recomendación de suspensión
+  • Proceso de renovación
+end note
+
+note bottom of MinIO
+  **Documentos de Seguimiento:**
+  • Formulario mensual de actividades
+  • Certificados de asistencia
+  • Boletas de calificaciones
+  • Informes de cumplimiento
+  • Constancias de beca
+end note
+
+note bottom of Blockchain
+  **Trazabilidad Completa:**
+  • Registro de cada reporte
+  • Aprobación de seguimientos
+  • Generación de alertas
+  • Suspensiones de beca
+  • Renovaciones aprobadas
+  • Historial inmutable
+end note
+
+@enduml

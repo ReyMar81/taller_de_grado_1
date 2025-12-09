@@ -381,16 +381,17 @@ export default function EditarPostulacionPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ mb: 3 }}>
-          <Button
-            startIcon={<BackIcon />}
-            onClick={() => router.push('/estudiante/postulaciones')}
-            sx={{ mb: 2 }}
-          >
-            Volver
-          </Button>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ mb: 3 }}>
+            <Button
+              startIcon={<BackIcon />}
+              onClick={() => router.push('/estudiante/postulaciones')}
+              sx={{ mb: 2 }}
+            >
+              Volver
+            </Button>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Typography variant="h4" component="h1">
@@ -897,6 +898,7 @@ export default function EditarPostulacionPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Container>
+    </Box>
   );
 }

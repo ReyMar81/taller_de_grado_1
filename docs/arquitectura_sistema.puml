@@ -1,0 +1,113 @@
+@startuml Diagrama_Componentes_DUBSS
+
+skinparam componentStyle rectangle
+skinparam component {
+    BackgroundColor<<Aplicacion>> #FFE4C4
+    BackgroundColor<<Usuarios>> #E6F3FF
+    BackgroundColor<<Administracion>> #FFF9E6
+    BackgroundColor<<Reportes>> #E8F5E9
+    BorderColor Black
+    FontSize 12
+}
+
+skinparam package {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 13
+    FontStyle bold
+}
+
+skinparam database {
+    BackgroundColor #E3F2FD
+    BorderColor Black
+}
+
+title cmp Diagrama de Componentes
+
+' ============================================================================
+' PAQUETES PRINCIPALES (Nivel Superior)
+' ============================================================================
+
+package "Aplicación" <<Aplicacion>> {
+    component [Frontend\nNext.js + React] as Frontend
+}
+
+package "Usuarios" <<Usuarios>> {
+    component [Gestión de\nUsuarios] as GestionUsuarios
+    component [Autenticación\nKeycloak] as Autenticacion
+}
+
+package "Administración" <<Administracion>> {
+    component [Gestión de\nConvocatorias] as GestionConvocatorias
+    component [Gestión de\nPostulaciones] as GestionPostulaciones
+    component [Evaluación\nIA/Manual] as Evaluacion
+    component [Seguimiento\nAcadémico] as Seguimiento
+}
+
+package "Reportes" <<Reportes>> {
+    component [Dashboard\nEjecutivo] as Dashboard
+    component [Generación de\nReportes] as Reportes
+}
+
+' ============================================================================
+' CAPA DE SOFTWARE DE GESTIÓN
+' ============================================================================
+
+package "<<DUBSS>>\nSoftware Gestión Becas" #IMPLEMENTATION {
+    component [Backend API\nDjango + DRF] as BackendAPI
+    component [ML Service\nScikit-learn + SHAP] as MLService
+    component [Blockchain Service\nHyperledger Fabric] as BlockchainService
+    component [Motor de Reglas\nDurable Rules] as MotorReglas
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA
+' ============================================================================
+
+package "Servicios Base de Datos" {
+    database "<<OLTP>>\nBase de Datos OLTP\nPostgreSQL" as OLTP
+    database "<<OLAP>>\nBase de Datos OLAP" as OLAP
+}
+
+' ============================================================================
+' RELACIONES - CAPA PRESENTACIÓN
+' ============================================================================
+
+Frontend -down-> GestionUsuarios : <<HTTP>>
+Frontend -down-> Autenticacion : <<HTTP>>
+Frontend -down-> GestionConvocatorias : <<HTTP>>
+Frontend -down-> GestionPostulaciones : <<HTTP>>
+Frontend -down-> Evaluacion : <<HTTP>>
+Frontend -down-> Seguimiento : <<HTTP>>
+Frontend -down-> Dashboard : <<HTTP>>
+Frontend -down-> Reportes : <<HTTP>>
+
+' ============================================================================
+' RELACIONES - PAQUETES CON SOFTWARE DE GESTIÓN
+' ============================================================================
+
+GestionUsuarios -down-> BackendAPI
+Autenticacion -down-> BackendAPI
+GestionConvocatorias -down-> BackendAPI
+GestionPostulaciones -down-> BackendAPI
+Evaluacion -down-> BackendAPI
+Seguimiento -down-> BackendAPI
+Dashboard -down-> BackendAPI
+Reportes -down-> BackendAPI
+
+BackendAPI -down-> MLService : <<REST>>
+BackendAPI -down-> BlockchainService : <<REST>>
+BackendAPI -down-> MotorReglas
+
+' ============================================================================
+' RELACIONES - SOFTWARE CON BASE DE DATOS
+' ============================================================================
+
+BackendAPI -down-> OLTP
+MLService -down-> OLTP
+BlockchainService -down-> OLTP
+BackendAPI -down-> OLAP
+
+OLTP .right.> OLAP : <<ETL>>
+
+@enduml

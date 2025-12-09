@@ -193,14 +193,16 @@ export default function DetalleConvocatoriaPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Button
-        startIcon={<BackIcon />}
-        onClick={() => router.push('/estudiante/convocatorias')}
-        sx={{ mb: 2 }}
-      >
-        Volver a Convocatorias
-      </Button>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Button
+          startIcon={<BackIcon />}
+          onClick={() => router.push('/estudiante/convocatorias')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -424,6 +426,7 @@ export default function DetalleConvocatoriaPage() {
           </Button>
         </Box>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 }

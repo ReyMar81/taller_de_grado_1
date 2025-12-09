@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Paper,
@@ -36,6 +37,7 @@ import {
   Clear,
   CheckBox,
   CheckBoxOutlineBlank,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 import axios from 'axios';
@@ -61,6 +63,7 @@ interface Postulacion {
 }
 
 export default function AsignacionBecasPage() {
+  const router = useRouter();
   const { token } = useAuthStore();
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [convocatoriaId, setConvocatoriaId] = useState('');
@@ -245,10 +248,20 @@ export default function AsignacionBecasPage() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Asignación de Becas Post-Comité
-      </Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Box sx={{ px: 3 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Typography variant="h4" gutterBottom sx={{ color: 'white', fontWeight: 700 }}>
+          Asignación de Becas Post-Comité
+        </Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="body1" color="text.secondary" paragraph>
@@ -511,6 +524,7 @@ export default function AsignacionBecasPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

@@ -37,7 +37,8 @@ import {
   FilterList as FilterIcon,
   Refresh as RefreshIcon,
   Psychology as PsychologyIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
@@ -317,11 +318,21 @@ export default function AdminPostulacionesPage() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Gestión de Postulaciones
-        </Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="xl">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700 }}>
+            Gestión de Postulaciones
+          </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           {filtros.convocatoria && (
             <>
@@ -677,6 +688,7 @@ export default function AdminPostulacionesPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Container>
+    </Box>
   );
 }

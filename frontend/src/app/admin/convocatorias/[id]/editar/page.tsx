@@ -30,7 +30,7 @@ import {
   DialogActions,
   Chip,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
 interface TabPanelProps {
@@ -472,16 +472,28 @@ export default function EditarConvocatoriaPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Editar Convocatoria
-          </Typography>
-          <Button variant="outlined" onClick={() => router.push('/admin/convocatorias')}>
-            Volver
-          </Button>
-        </Box>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button 
+                variant="outlined" 
+                startIcon={<ArrowBackIcon />}
+                onClick={() => router.push('/admin/convocatorias')}
+                sx={{ 
+                  color: '#C62828', 
+                  borderColor: '#C62828',
+                  '&:hover': { borderColor: '#8E0000', bgcolor: 'rgba(198,40,40,0.05)' }
+                }}
+              >
+                Volver
+              </Button>
+              <Typography variant="h4" component="h1" sx={{ color: '#C62828', fontWeight: 700 }}>
+                Editar Convocatoria
+              </Typography>
+            </Box>
+          </Box>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
@@ -904,6 +916,7 @@ export default function EditarConvocatoriaPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+        </Container>
+      </Box>
   );
 }

@@ -1,0 +1,180 @@
+@startuml Subsistema_Postulaciones
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor LightGreen
+    BorderColor Black
+    ArrowColor Black
+    FontSize 11
+}
+
+skinparam interface {
+    BackgroundColor LightYellow
+    BorderColor Black
+}
+
+title Diagrama de Componentes del Subsistema Postulaciones
+
+' ============================================================================
+' CLIENTE
+' ============================================================================
+package "Cliente" <<cliente>> {
+    component [Interfaz Web\nPostulaciones] as UIPostulaciones
+    component [Interfaz Web\nFormularios] as UIFormularios
+}
+
+' ============================================================================
+' SERVIDOR - SUBSISTEMA POSTULACIONES
+' ============================================================================
+package "Servidor - Subsistema Postulaciones" <<servidor>> {
+    
+    ' Interfaces
+    interface "<<interface>>\nPostulacionController" as IPostulacionController
+    interface "<<interface>>\nDocumentoController" as IDocumentoController
+    
+    ' Servicios
+    component "<<interface>>\nPostulacionService" as PostulacionService {
+        [crearPostulacion()]
+        [enviarPostulacion()]
+        [listarPostulaciones()]
+        [cambiarEstado()]
+        [validarCompletitud()]
+    }
+    
+    component "<<interface>>\nFormularioService" as FormularioService {
+        [guardarSocioeconomico()]
+        [guardarAcademico()]
+        [calcularPuntajeSocioeconomico()]
+        [calcularPuntajeAcademico()]
+    }
+    
+    component "<<interface>>\nDocumentoService" as DocumentoService {
+        [subirDocumento()]
+        [validarDocumento()]
+        [listarDocumentos()]
+        [eliminarDocumento()]
+    }
+    
+    component "<<interface>>\nPostulacionMapper" as PostulacionMapper {
+        [Postulacion → DTO]
+        [DTO → Postulacion]
+        [validarFormularios()]
+        [validarDocumentos()]
+    }
+    
+    component "<<interface>>\nValidacionService" as ValidacionService {
+        [validarRequisitos()]
+        [validarCompletitud()]
+        [verificarElegibilidad()]
+    }
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA Y ALMACENAMIENTO
+' ============================================================================
+package "<<OLTP>>\nServicio Base de Datos" <<servicio>> {
+    database "PostgreSQL" {
+        [<<table>>\nPostulacion]
+        [<<table>>\nFormularioSocioeconomico]
+        [<<table>>\nFormularioAcademico]
+        [<<table>>\nDocumentoPostulacion]
+    }
+    
+    component "MinIO\nAlmacenamiento S3" as MinIO {
+        [bucket:\ndocumentos/postulaciones]
+        [Gestión de archivos]
+        [URLs presignadas]
+    }
+    
+    component "Blockchain Service" as Blockchain {
+        [registrarEvento()]
+        [POSTULACION_CREADA]
+        [POSTULACION_ENVIADA]
+        [DOCUMENTO_SUBIDO]
+    }
+}
+
+' ============================================================================
+' RELACIONES - CLIENTE CON SERVIDOR
+' ============================================================================
+UIPostulaciones --> IPostulacionController : <<HTTP>>\nREST
+UIFormularios --> IPostulacionController : <<HTTP>>\nREST
+UIPostulaciones --> IDocumentoController : <<HTTP>>\nMultipart
+
+' ============================================================================
+' RELACIONES - SERVIDOR INTERNO
+' ============================================================================
+IPostulacionController --> PostulacionService : utiliza
+IDocumentoController --> DocumentoService : utiliza
+
+PostulacionService --> PostulacionMapper : utiliza
+PostulacionService --> FormularioService : utiliza
+PostulacionService --> ValidacionService : utiliza
+DocumentoService --> ValidacionService : utiliza
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON BASE DE DATOS
+' ============================================================================
+PostulacionService --> "<<table>>\nPostulacion" : CRUD
+FormularioService --> "<<table>>\nFormularioSocioeconomico" : CRUD
+FormularioService --> "<<table>>\nFormularioAcademico" : CRUD
+DocumentoService --> "<<table>>\nDocumentoPostulacion" : CRUD
+
+DocumentoService --> MinIO : upload/download
+PostulacionService --> Blockchain : registrar eventos
+
+' ============================================================================
+' NOTAS
+' ============================================================================
+note right of PostulacionService
+  **Funcionalidades:**
+  • Crear borrador de postulación
+  • Gestión de formularios
+  • Validar completitud
+  • Enviar a evaluación
+  • Control de estados
+  
+  **Estados:**
+  • BORRADOR
+  • RECEPCIONADO
+  • EN_REVISION
+  • OBSERVADO
+  • EVALUADO
+  • APROBADO
+  • RECHAZADO
+end note
+
+note right of FormularioService
+  **Cálculo de Puntajes:**
+  
+  **Socioeconómico (70%):**
+  • Dependencia familiar
+  • Ingresos del hogar
+  • Zona de residencia
+  • Tipo de vivienda
+  • Número de integrantes
+  
+  **Académico (30%):**
+  • Promedio del semestre
+  • Materias aprobadas
+end note
+
+note bottom of MinIO
+  **Documentos Requeridos:**
+  • Carnet de Identidad
+  • Certificado de Notas
+  • Inscripción Semestral
+  • Ficha Socioeconómica
+  • Declaración Jurada
+  • Documentos de respaldo
+end note
+
+note bottom of Blockchain
+  **Eventos Registrados:**
+  • Creación de postulación
+  • Envío a evaluación
+  • Carga de documentos
+  • Cambios de estado
+end note
+
+@enduml

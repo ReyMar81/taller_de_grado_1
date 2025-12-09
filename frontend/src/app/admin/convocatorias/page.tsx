@@ -36,7 +36,8 @@ import {
   Pause as PauseIcon,
   Stop as CloseIcon,
   Stop as StopIcon,
-  CheckCircle as FinalizeIcon
+  CheckCircle as FinalizeIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 
@@ -179,19 +180,35 @@ export default function ConvocatoriasAdminPage() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Gestión de Convocatorias
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => router.push('/admin/convocatorias/crear')}
-        >
-          Nueva Convocatoria
-        </Button>
-      </Box>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="xl">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => router.push('/dashboard')}
+              sx={{ 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': { borderColor: '#C62828', bgcolor: 'rgba(255,255,255,0.1)' }
+              }}
+            >
+              Volver
+            </Button>
+            <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700 }}>
+              Gestión de Convocatorias
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => router.push('/admin/convocatorias/crear')}
+            sx={{ bgcolor: 'white', color: '#C62828', '&:hover': { bgcolor: '#f5f5f5' } }}
+          >
+            Nueva Convocatoria
+          </Button>
+        </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -352,6 +369,7 @@ export default function ConvocatoriasAdminPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Container>
+    </Box>
   );
 }

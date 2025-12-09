@@ -1,0 +1,148 @@
+@startuml Subsistema_Convocatorias
+!define RECTANGLE class
+
+skinparam component {
+    BackgroundColor LightSalmon
+    BorderColor Black
+    ArrowColor Black
+    FontSize 11
+}
+
+skinparam interface {
+    BackgroundColor LightYellow
+    BorderColor Black
+}
+
+title Diagrama de Componentes del Subsistema Convocatorias
+
+' ============================================================================
+' CLIENTE
+' ============================================================================
+package "Cliente" <<cliente>> {
+    component [Interfaz Web\nConvocatorias] as UIConvocatorias
+    component [Interfaz Web\nAdministración] as UIAdmin
+}
+
+' ============================================================================
+' SERVIDOR - SUBSISTEMA CONVOCATORIAS
+' ============================================================================
+package "Servidor - Subsistema Convocatorias" <<servidor>> {
+    
+    ' Interfaces
+    interface "<<interface>>\nConvocatoriaController" as IConvocatoriaController
+    interface "<<interface>>\nTipoBecaController" as ITipoBecaController
+    
+    ' Servicios
+    component "<<interface>>\nConvocatoriaService" as ConvocatoriaService {
+        [crearConvocatoria()]
+        [listarConvocatorias()]
+        [obtenerActivas()]
+        [cambiarEstado()]
+        [cerrarConvocatoria()]
+    }
+    
+    component "<<interface>>\nTipoBecaService" as TipoBecaService {
+        [listarTiposBeca()]
+        [obtenerPorTipo()]
+        [configurarCupos()]
+        [obtenerRequisitos()]
+    }
+    
+    component "<<interface>>\nCupoService" as CupoService {
+        [asignarCupos()]
+        [consultarDisponibilidad()]
+        [actualizarCupos()]
+    }
+    
+    component "<<interface>>\nConvocatoriaMapper" as ConvocatoriaMapper {
+        [Convocatoria → DTO]
+        [DTO → Convocatoria]
+        [validarFechas()]
+        [validarEstado()]
+    }
+    
+    component "<<interface>>\nRequisitoService" as RequisitoService {
+        [configurarRequisitos()]
+        [validarDocumentos()]
+        [obtenerPorConvocatoria()]
+    }
+}
+
+' ============================================================================
+' CAPA DE PERSISTENCIA
+' ============================================================================
+package "<<OLTP>>\nServicio Base de Datos" <<servicio>> {
+    database "PostgreSQL" {
+        [<<table>>\nConvocatoria]
+        [<<table>>\nTipoBeca]
+        [<<table>>\nCupoConvocatoria]
+        [<<table>>\nRequisitoDocumento]
+    }
+    
+    component "Motor de Reglas\nDurable Rules" as DurableRules {
+        [ReglasNegocio]
+        [ValidacionEstados]
+        [ValidacionFechas]
+    }
+}
+
+' ============================================================================
+' RELACIONES - CLIENTE CON SERVIDOR
+' ============================================================================
+UIConvocatorias --> IConvocatoriaController : <<HTTP>>\nREST
+UIAdmin --> IConvocatoriaController : <<HTTP>>\nREST
+UIAdmin --> ITipoBecaController : <<HTTP>>\nREST
+
+' ============================================================================
+' RELACIONES - SERVIDOR INTERNO
+' ============================================================================
+IConvocatoriaController --> ConvocatoriaService : utiliza
+ITipoBecaController --> TipoBecaService : utiliza
+
+ConvocatoriaService --> ConvocatoriaMapper : utiliza
+ConvocatoriaService --> CupoService : utiliza
+ConvocatoriaService --> RequisitoService : utiliza
+TipoBecaService --> ConvocatoriaMapper : utiliza
+
+ConvocatoriaService --> DurableRules : valida reglas
+
+' ============================================================================
+' RELACIONES - SERVIDOR CON BASE DE DATOS
+' ============================================================================
+ConvocatoriaService --> "<<table>>\nConvocatoria" : CRUD
+TipoBecaService --> "<<table>>\nTipoBeca" : READ
+CupoService --> "<<table>>\nCupoConvocatoria" : CRUD
+RequisitoService --> "<<table>>\nRequisitoDocumento" : CRUD
+
+' ============================================================================
+' NOTAS
+' ============================================================================
+note right of ConvocatoriaService
+  **Funcionalidades:**
+  • Crear y gestionar convocatorias
+  • Publicar/pausar/cerrar convocatorias
+  • Consultar convocatorias activas
+  • Validar periodos de postulación
+  • Control de estados del proceso
+end note
+
+note right of TipoBecaService
+  **Tipos de Beca:**
+  • Beca Alimentación
+  • Beca Albergue
+  • Beca Estudio
+  • Beca Investigación
+  • Beca Internado Rotatorio
+  • Beca Excelencia Académica
+  • Beca Interacción Social
+end note
+
+note bottom of DurableRules
+  **Motor de Reglas:**
+  • Validación de fechas
+  • Transiciones de estados
+  • Reglas de cupos
+  • Reglas de elegibilidad
+end note
+
+@enduml

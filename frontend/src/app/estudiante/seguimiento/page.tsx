@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Paper,
@@ -37,6 +38,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Pending as PendingIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/services/api';
@@ -69,6 +71,7 @@ interface Seguimiento {
 }
 
 export default function SeguimientoBecaEstudiantePage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [becasAprobadas, setBecasAprobadas] = useState<BecaAprobada[]>([]);
   const [seguimientos, setSeguimientos] = useState<Seguimiento[]>([]);
@@ -183,9 +186,19 @@ export default function SeguimientoBecaEstudiantePage() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Seguimiento de Becas</Typography>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Box sx={{ px: 3 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/dashboard')}
+          sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+          variant="outlined"
+        >
+          Volver
+        </Button>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" sx={{ color: 'white', fontWeight: 700 }}>Seguimiento de Becas</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
@@ -455,6 +468,7 @@ export default function SeguimientoBecaEstudiantePage() {
           <Button onClick={() => setDialogDetalle(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

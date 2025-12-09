@@ -192,16 +192,17 @@ export default function NuevaPostulacionPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ mb: 3 }}>
-          <Button
-            startIcon={<BackIcon />}
-            onClick={() => router.push('/estudiante/convocatorias')}
-            sx={{ mb: 2 }}
-          >
-            Volver a Convocatorias
-          </Button>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #C62828 0%, #8E0000 50%, #003D82 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ mb: 3 }}>
+            <Button
+              startIcon={<BackIcon />}
+              onClick={() => router.push('/estudiante/convocatorias')}
+              sx={{ mb: 2 }}
+            >
+              Volver a Convocatorias
+            </Button>
           <Typography variant="h4" component="h1" gutterBottom>
             Iniciar Postulación
           </Typography>
@@ -304,8 +305,9 @@ export default function NuevaPostulacionPage() {
               </Grid>
             ))}
           </Grid>
-        )}
-      </Paper>
-    </Container>
+          )}
+        </Paper>
+      </Container>
+    </Box>
   );
 }
